@@ -55,10 +55,9 @@ export default class Importer extends PageImporter {
       meta.Category = category.content;
     }
 
-    const date = main.querySelector('.published');
+    const date = document.querySelector('[property="article:published_time"]');
     if (date) {
-      const datetime = date.getAttribute('datetime');
-      meta['Publication Date'] = datetime.substring(0, datetime.indexOf('T'));
+      meta['Publication Date'] = date.content.substring(0, date.content.indexOf('T'));
     }
 
     const author = main.querySelector('[rel="author"]');
@@ -71,7 +70,7 @@ export default class Importer extends PageImporter {
       const split = metatop.textContent.trim().split('\n');
       if (split.length === 3) {
         // eslint-disable-next-line prefer-destructuring
-        meta['Read Time'] = split[2];
+        meta['Read Time'] = split[2].trim();
       }
     }
 
@@ -86,6 +85,58 @@ export default class Importer extends PageImporter {
     main.append(block);
 
     return meta;
+  }
+
+  createEmbeds(main, document) {
+    main.querySelectorAll('iframe').forEach((embed) => {
+      let src = embed.getAttribute('src');
+      src = src && src.startsWith('//') ? `https:${src}` : src;
+      if (src) {
+        embed.replaceWith(DOM.createTable([
+          ['Embed'],
+          [`<a href="${src}">${src}</a>`],
+        ], document));
+      }
+    });
+  }
+
+  createCallouts(main, document) {
+    main.querySelectorAll('.blogPostContent__ctaContainer').forEach((callout) => {
+      const rows = [];
+      let blockName = 'Callout';
+
+      if (callout.classList.contains('blogPostContent__ctaContainer--right')) {
+        blockName += ' (right)';
+      } else if (callout.classList.contains('blogPostContent__ctaContainer--left')) {
+        blockName += ' (left)';
+      }
+
+      rows.push([blockName]);
+
+      const container = document.createElement('div');
+
+      const firstText = callout.querySelector('.blogPostContent__ctaText');
+      if (firstText) {
+        const h = document.createElement('h3');
+        h.innerHTML = firstText.textContent;
+        container.append(h);
+      }
+
+      const sub = callout.querySelector('.blogPostContent__ctaSubheading');
+      if (sub) {
+        const p = document.createElement('p');
+        p.innerHTML = sub.innerHTML;
+        container.append(p);
+      }
+
+      rows.push([container]);
+
+      const cta = callout.querySelector('a');
+      if (cta) {
+        rows.push([cta]);
+      }
+      callout.replaceWith(DOM.createTable(rows, document));
+    });
   }
 
   createRelatedPostsBlock(main, document) {
@@ -130,7 +181,6 @@ export default class Importer extends PageImporter {
       '.blogPostContentToc',
       '.blogPostContentSubscribe',
       '.blogPostAuthor',
-      '.blogPostContent__ctaContainer',
     ]);
 
     const main = document.querySelector('.blogPostMain');
@@ -146,6 +196,8 @@ export default class Importer extends PageImporter {
     }
 
     this.createRelatedPostsBlock(main, document);
+    this.createEmbeds(main, document);
+    this.createCallouts(main, document);
 
     const meta = this.createMetadata(main, document);
 

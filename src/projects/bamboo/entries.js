@@ -16,7 +16,6 @@ async function getEntries() {
   let urls = await Loader.loadSitemap('https://www.bamboohr.com/blog/post-sitemap.xml');
   urls = urls.filter((u) => u.indexOf('/blog/') !== -1);
   return urls;
-  // return [urls[urls.length-1]];
 }
 
 export default getEntries;
