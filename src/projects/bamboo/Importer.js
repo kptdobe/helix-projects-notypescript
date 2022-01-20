@@ -11,13 +11,15 @@
  */
 /* eslint-disable no-console, class-methods-use-this */
 
-import { PageImporter, PageImporterResource, DOMUtils } from '@adobe/helix-importer';
+import {
+  PageImporter,
+  PageImporterResource,
+  DOMUtils,
+  Blocks,
+} from '@adobe/helix-importer';
 
 import fetch from 'node-fetch';
 import path from 'path';
-
-import Blocks from '../../utils/Blocks.js';
-import DOM from '../../utils/DOM.js';
 
 export default class Importer extends PageImporter {
   async fetch(url) {
@@ -92,7 +94,7 @@ export default class Importer extends PageImporter {
       let src = embed.getAttribute('src');
       src = src && src.startsWith('//') ? `https:${src}` : src;
       if (src) {
-        embed.replaceWith(DOM.createTable([
+        embed.replaceWith(DOMUtils.createTable([
           ['Embed'],
           [`<a href="${src}">${src}</a>`],
         ], document));
@@ -135,7 +137,7 @@ export default class Importer extends PageImporter {
       if (cta) {
         rows.push([cta]);
       }
-      callout.replaceWith(DOM.createTable(rows, document));
+      callout.replaceWith(DOMUtils.createTable(rows, document));
     });
   }
 
@@ -149,7 +151,7 @@ export default class Importer extends PageImporter {
         r.innerHTML = r.getAttribute('href');
         cells.push([r]);
       });
-      const table = DOM.createTable(cells, document);
+      const table = DOMUtils.createTable(cells, document);
       main.append(table);
     }
   }
@@ -191,7 +193,7 @@ export default class Importer extends PageImporter {
 
     let hero = document.querySelector('.blogPostBanner__img');
     if (hero) {
-      hero = DOM.replaceBackgroundByImg(hero, document);
+      hero = DOMUtils.replaceBackgroundByImg(hero, document);
       if (title) hero.before(title);
     }
 
