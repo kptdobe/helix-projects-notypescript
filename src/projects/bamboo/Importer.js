@@ -39,7 +39,7 @@ export default class Importer extends PageImporter {
     return n;
   }
 
-  createMetadata(main, document) {
+  createMetadata(main, document, html) {
     const meta = {};
 
     const title = document.querySelector('title');
@@ -81,6 +81,21 @@ export default class Importer extends PageImporter {
       const el = document.createElement('img');
       el.src = img.content;
       meta.Image = el;
+    }
+
+    const match = html.toString().match(/yoast-schema-graph yoast-schema-graph--main'>(.*)<\/script>/);
+    if (match && match.length > 1) {
+      try {
+        const obj = JSON.parse(match[1]);
+        const url = obj['@graph'] && obj['@graph'].length > 1 ? obj['@graph'][2].image?.url : null;
+        if (url) {
+          const el = document.createElement('img');
+          el.src = url;
+          meta['Card Image'] = el;
+        }
+      } catch (error) {
+        console.warn(`Unable to parse yoast meta object: ${error.message}`);
+      }
     }
 
     const block = Blocks.getMetadataBlock(document, meta);
@@ -141,6 +156,13 @@ export default class Importer extends PageImporter {
     });
   }
 
+  createTOC(main, document) {
+    const toc = main.querySelector('.blogPostContentToc');
+    if (toc) {
+      toc.replaceWith(DOMUtils.createTable([['TOC']], document));
+    }
+  }
+
   createRelatedPostsBlock(main, document) {
     const related = document.querySelectorAll('.blogPostsBlock__titleLink');
     if (related) {
@@ -165,11 +187,20 @@ export default class Importer extends PageImporter {
 
   postProcessMD(md) {
     let ret = super.postProcessMD(md);
+    for (let i = 0; i < 20; i += 1) {
+      let x = `${i}`;
+      if (i < 10) x = `0${i}`;
+      const c = String.fromCodePoint(parseInt(`00${x}`, 16));
+      console.log(`${i}: "${c}"`);
+      const reg = new RegExp(`\\u00${x}`, 'g');
+      const r = [c.length].map(() => ' ').join('');
+      ret = ret.replace(reg, r);
+    }
     ret = ret.replace(/\u00A0/gm, '');
     return ret;
   }
 
-  async process(document, url) {
+  async process(document, url, params, html) {
     DOMUtils.remove(document, [
       'header',
       'NavbarMobile',
@@ -180,7 +211,6 @@ export default class Importer extends PageImporter {
       '.blogSearch__overlay',
       '.blogPostBanner__extra',
       '.blogSocial',
-      '.blogPostContentToc',
       '.blogPostContentSubscribe',
       '.blogPostAuthor',
     ]);
@@ -200,8 +230,9 @@ export default class Importer extends PageImporter {
     this.createRelatedPostsBlock(main, document);
     this.createEmbeds(main, document);
     this.createCallouts(main, document);
+    this.createTOC(main, document);
 
-    const meta = this.createMetadata(main, document);
+    const meta = this.createMetadata(main, document, html);
 
     DOMUtils.remove(document, [
       '.blogPostContent__meta',

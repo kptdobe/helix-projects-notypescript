@@ -54,6 +54,7 @@ async function main() {
     'file',
     'category',
     'author',
+    'authorURL',
   ]];
 
   await Utils.asyncForEach(entries, async (e) => {
@@ -67,6 +68,7 @@ async function main() {
           entry.docx,
           entry.extra.meta.Category,
           entry.extra.meta.Author.textContent,
+          entry.extra.meta.Author.href,
         ]);
       });
     } catch (error) {
